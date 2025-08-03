@@ -1,12 +1,10 @@
-# Taken from megadlbot_oss <https://github.com/eyaadh/megadlbot_oss/blob/master/mega/webserver/routes.py>
-# Thanks to Eyaadh <https://github.com/eyaadh>
-
 import re
 import time
 import math
 import logging
 import secrets
 import mimetypes
+import os
 from aiohttp import web
 from aiohttp.http_exceptions import BadStatusLine
 from WebStreamer.bot import multi_clients, work_loads
@@ -14,8 +12,27 @@ from WebStreamer.server.exceptions import FIleNotFound, InvalidHash
 from WebStreamer import Var, utils, StartTime, __version__, StreamBot
 from WebStreamer.utils.render_template import render_page
 
-
 routes = web.RouteTableDef()
+
+# Ruta absoluta a la plantilla HTML
+REQ_TEMPLATE_PATH = os.path.join("WebStreamer", "template", "req.html")
+
+def render_player_html(file_name: str, stream_url: str) -> str:
+    mime_type, _ = mimetypes.guess_type(file_name)
+
+    if mime_type and mime_type.startswith("video"):
+        player_tag = f'<video src="{stream_url}" class="player" controls playsinline></video>'
+    elif mime_type and mime_type.startswith("audio"):
+        player_tag = f'<audio src="{stream_url}" class="player" controls></audio>'
+    else:
+        # Si no es audio ni video, mostramos enlace de descarga
+        player_tag = f'<a href="{stream_url}" download>📥 Descargar {file_name}</a>'
+
+    with open(REQ_TEMPLATE_PATH, "r", encoding="utf-8") as f:
+        template = f.read()
+
+    # Reemplaza los %s del template: título, header, contenido (reproductor o enlace)
+    return template % (file_name, file_name, player_tag)
 
 @routes.get("/", allow_head=True)
 async def root_route_handler(_):
@@ -36,7 +53,7 @@ async def root_route_handler(_):
     )
 
 @routes.get(r"/watch/{path:\S+}", allow_head=True)
-async def stream_handler(request: web.Request):
+async def watch_route_handler(request: web.Request):
     try:
         path = request.match_info["path"]
         match = re.search(r"^([a-zA-Z0-9_-]{6})(\d+)$", path)
@@ -56,6 +73,41 @@ async def stream_handler(request: web.Request):
     except Exception as e:
         logging.critical(e.with_traceback(None))
         raise web.HTTPInternalServerError(text=str(e))
+
+@routes.get(r"/dl/{path:\S+}", allow_head=True)
+async def dl_player_handler(request: web.Request):
+    try:
+        path = request.match_info["path"]
+        match = re.search(r"^([a-zA-Z0-9_-]{6})(\d+)$", path)
+        if match:
+            secure_hash = match.group(1)
+            message_id = int(match.group(2))
+        else:
+            message_id = int(re.search(r"(\d+)(?:\/\S+)?", path).group(1))
+            secure_hash = request.rel_url.query.get("hash")
+
+        # Selecciona cliente más libre para la petición
+        index = min(work_loads, key=work_loads.get)
+        faster_client = multi_clients[index]
+        tg_connect = utils.ByteStreamer(faster_client)
+
+        file_id = await tg_connect.get_file_properties(message_id)
+        file_name = file_id.file_name or f"{secrets.token_hex(2)}.unknown"
+
+        # URL interna para el stream (usando hash + id)
+        stream_url = f"/{secure_hash}{message_id}"
+
+        html_content = render_player_html(file_name, stream_url)
+
+        return web.Response(text=html_content, content_type="text/html")
+
+    except InvalidHash as e:
+        raise web.HTTPForbidden(text=e.message)
+    except FIleNotFound as e:
+        raise web.HTTPNotFound(text=e.message)
+    except Exception as e:
+        logging.critical(e.with_traceback(None))
+        return web.Response(text=f"Error interno: {str(e)}", status=500)
 
 @routes.get(r"/{path:\S+}", allow_head=True)
 async def stream_handler(request: web.Request):
@@ -136,7 +188,7 @@ async def media_streamer(request: web.Request, message_id: int, secure_hash: str
                 file_name = f"{secrets.token_hex(2)}.unknown"
     else:
         if file_name:
-            mime_type = mimetypes.guess_type(file_id.file_name)
+            mime_type = mimetypes.guess_type(file_id.file_name)[0]
         else:
             mime_type = "application/octet-stream"
             file_name = f"{secrets.token_hex(2)}.unknown"
