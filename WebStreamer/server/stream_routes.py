@@ -14,7 +14,6 @@ from WebStreamer.utils.render_template import render_page
 
 routes = web.RouteTableDef()
 
-# Ruta absoluta a la plantilla HTML
 REQ_TEMPLATE_PATH = os.path.join("WebStreamer", "template", "req.html")
 
 def render_player_html(file_name: str, stream_url: str) -> str:
@@ -25,14 +24,13 @@ def render_player_html(file_name: str, stream_url: str) -> str:
     elif mime_type and mime_type.startswith("audio"):
         player_tag = f'<audio src="{stream_url}" class="player" controls></audio>'
     else:
-        # Si no es audio ni video, mostramos enlace de descarga
         player_tag = f'<a href="{stream_url}" download>📥 Descargar {file_name}</a>'
 
     with open(REQ_TEMPLATE_PATH, "r", encoding="utf-8") as f:
         template = f.read()
 
-    # Reemplaza los %s del template: título, header, contenido (reproductor o enlace)
     return template % (file_name, file_name, player_tag)
+
 
 @routes.get("/", allow_head=True)
 async def root_route_handler(_):
@@ -52,6 +50,7 @@ async def root_route_handler(_):
         }
     )
 
+
 @routes.get(r"/watch/{path:\S+}", allow_head=True)
 async def watch_route_handler(request: web.Request):
     try:
@@ -68,11 +67,13 @@ async def watch_route_handler(request: web.Request):
         raise web.HTTPForbidden(text=e.message)
     except FIleNotFound as e:
         raise web.HTTPNotFound(text=e.message)
-    except (AttributeError, BadStatusLine, ConnectionResetError):
-        pass
+    except (AttributeError, BadStatusLine, ConnectionResetError) as e:
+        logging.warning(f"Ignored error in watch_route_handler: {e}")
+        raise web.HTTPNotFound()
     except Exception as e:
         logging.critical(e.with_traceback(None))
         raise web.HTTPInternalServerError(text=str(e))
+
 
 @routes.get(r"/dl/{path:\S+}", allow_head=True)
 async def dl_player_handler(request: web.Request):
@@ -86,7 +87,6 @@ async def dl_player_handler(request: web.Request):
             message_id = int(re.search(r"(\d+)(?:\/\S+)?", path).group(1))
             secure_hash = request.rel_url.query.get("hash")
 
-        # Selecciona cliente más libre para la petición
         index = min(work_loads, key=work_loads.get)
         faster_client = multi_clients[index]
         tg_connect = utils.ByteStreamer(faster_client)
@@ -94,7 +94,6 @@ async def dl_player_handler(request: web.Request):
         file_id = await tg_connect.get_file_properties(message_id)
         file_name = file_id.file_name or f"{secrets.token_hex(2)}.unknown"
 
-        # URL interna para el stream (usando hash + id)
         stream_url = f"/{secure_hash}{message_id}"
 
         html_content = render_player_html(file_name, stream_url)
@@ -108,6 +107,7 @@ async def dl_player_handler(request: web.Request):
     except Exception as e:
         logging.critical(e.with_traceback(None))
         return web.Response(text=f"Error interno: {str(e)}", status=500)
+
 
 @routes.get(r"/{path:\S+}", allow_head=True)
 async def stream_handler(request: web.Request):
@@ -125,11 +125,13 @@ async def stream_handler(request: web.Request):
         raise web.HTTPForbidden(text=e.message)
     except FIleNotFound as e:
         raise web.HTTPNotFound(text=e.message)
-    except (AttributeError, BadStatusLine, ConnectionResetError):
-        pass
+    except (AttributeError, BadStatusLine, ConnectionResetError) as e:
+        logging.warning(f"Ignored error in stream_handler: {e}")
+        raise web.HTTPNotFound()
     except Exception as e:
         logging.critical(e.with_traceback(None))
         raise web.HTTPInternalServerError(text=str(e))
+
 
 class_cache = {}
 
