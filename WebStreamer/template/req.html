@@ -1,75 +1,25 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta property="og:image" content="https://www.flaticon.com/premium-icon/icons/svg/2626/2626281.svg" itemprop="thumbnailUrl">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>%s</title>
-    
-    <!-- Fuentes y estilos -->
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Raleway|Delius">
-    <link rel="stylesheet" href="https://cdn.plyr.io/3.5.6/plyr.css" />
-    
-    <style>
-        body {
-            margin: 0;
-            font-family: 'Raleway', sans-serif;
-            background-color: #121212;
-            color: white;
-        }
-        header {
-            padding: 15px;
-            text-align: center;
-            background: #1e1e1e;
-            font-size: 1.2em;
-            font-weight: bold;
-        }
-        .container {
-            display: flex;
-            justify-content: center;
-            margin: 20px;
-        }
-        footer {
-            text-align: center;
-            padding: 15px;
-            background: #1e1e1e;
-            font-size: 0.9em;
-        }
-        footer a {
-            color: #ff5555;
-            text-decoration: none;
-            font-weight: bold;
-        }
-    </style>
-</head>
+import mimetypes
 
-<body>
-    <header>
-        %s
-    </header>
+def render_player_template(file_name: str, file_url: str) -> str:
+    # Detectar tipo MIME del archivo
+    mime_type, _ = mimetypes.guess_type(file_name)
+    
+    if mime_type:
+        if mime_type.startswith("video"):
+            player_tag = f'<video src="{file_url}" class="player" controls playsinline></video>'
+        elif mime_type.startswith("audio"):
+            player_tag = f'<audio src="{file_url}" class="player" controls></audio>'
+        else:
+            # Si no es audio ni video, mostrar mensaje de descarga
+            player_tag = f'<a href="{file_url}" download>📥 Descargar {file_name}</a>'
+    else:
+        # Por si no detecta el tipo
+        player_tag = f'<a href="{file_url}" download>📥 Descargar {file_name}</a>'
 
-    <div class="container">
-        %s
-    </div>
-    
-    <footer>
-        <span>📢 Visítanos en nuestro canal de Telegram → </span>
-        <a href="https://t.me/peligxg" target="_blank">@peligxg</a>
-    </footer>
-    
-    <!-- Scripts -->
-    <script src="https://cdn.plyr.io/3.5.6/plyr.js"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            Plyr.setup('.player', { 
-                controls: [
-                    'play-large', 'rewind', 'play', 'fast-forward', 'progress',
-                    'current-time', 'duration', 'mute', 'volume', 'settings', 
-                    'pip', 'airplay', 'fullscreen'
-                ]
-            });
-        });
-    </script>
-</body>
-</html>
+    # Leer plantilla
+    with open("WebStreamer/template/req.html", "r", encoding="utf-8") as f:
+        template = f.read()
+
+    # Reemplazar los %s
+    html_content = template % (file_name, file_name, player_tag)
+    return html_content
