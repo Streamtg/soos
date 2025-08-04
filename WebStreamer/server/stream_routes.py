@@ -1,4 +1,3 @@
-# WebStreamer/server/stream_routes.py
 import re
 import time
 import math
@@ -12,7 +11,6 @@ from WebStreamer.server.exceptions import FIleNotFound, InvalidHash
 from WebStreamer import Var, utils, StartTime, __version__, StreamBot
 from WebStreamer.utils.render_template import render_page
 
-# Definir rutas antes de usarlas
 routes = web.RouteTableDef()
 
 @routes.get("/", allow_head=True)
@@ -35,21 +33,18 @@ async def root_route_handler(_):
 
 @routes.get(r"/watch/{path:\S+}", allow_head=True)
 async def watch_route_handler(request: web.Request):
-    """Página HTML que reproduce video/audio o muestra enlace de descarga."""
     try:
         path = request.match_info["path"]
+
         match = re.search(r"^([a-zA-Z0-9_-]{6})(\d+)$", path)
         if match:
             secure_hash = match.group(1)
             message_id = int(match.group(2))
         else:
-            m = re.search(r"(\d+)(?:\/\S+)?", path)
-            if not m:
-                raise web.HTTPBadRequest(text="Invalid path format")
-            message_id = int(m.group(1))
+            message_id = int(re.search(r"(\d+)(?:\/\S+)?", path).group(1))
             secure_hash = request.rel_url.query.get("hash")
 
-        # Genera HTML con multimedia o enlace de descarga
+        # 🔹 Pasamos message_id y secure_hash
         html_content = await render_page(message_id, secure_hash)
         return web.Response(text=html_content, content_type='text/html')
 
@@ -57,24 +52,23 @@ async def watch_route_handler(request: web.Request):
         raise web.HTTPForbidden(text=e.message)
     except FIleNotFound as e:
         raise web.HTTPNotFound(text=e.message)
+    except (AttributeError, BadStatusLine, ConnectionResetError):
+        raise web.HTTPBadRequest(text="Bad Request")
     except Exception as e:
-        logging.critical(str(e))
+        logging.critical(e, exc_info=True)
         raise web.HTTPInternalServerError(text=str(e))
 
 @routes.get(r"/{path:\S+}", allow_head=True)
 async def stream_handler(request: web.Request):
-    """Stream binario del archivo (video/audio/descarga directa)."""
     try:
         path = request.match_info["path"]
+
         match = re.search(r"^([a-zA-Z0-9_-]{6})(\d+)$", path)
         if match:
             secure_hash = match.group(1)
             message_id = int(match.group(2))
         else:
-            m = re.search(r"(\d+)(?:\/\S+)?", path)
-            if not m:
-                raise web.HTTPBadRequest(text="Invalid path format")
-            message_id = int(m.group(1))
+            message_id = int(re.search(r"(\d+)(?:\/\S+)?", path).group(1))
             secure_hash = request.rel_url.query.get("hash")
 
         return await media_streamer(request, message_id, secure_hash)
@@ -83,15 +77,15 @@ async def stream_handler(request: web.Request):
         raise web.HTTPForbidden(text=e.message)
     except FIleNotFound as e:
         raise web.HTTPNotFound(text=e.message)
+    except (AttributeError, BadStatusLine, ConnectionResetError):
+        raise web.HTTPBadRequest(text="Bad Request")
     except Exception as e:
-        logging.critical(str(e))
+        logging.critical(e, exc_info=True)
         raise web.HTTPInternalServerError(text=str(e))
 
-# Cache de conexiones ByteStreamer
 class_cache = {}
 
 async def media_streamer(request: web.Request, message_id: int, secure_hash: str):
-    """Envía el contenido binario en chunks soportando Range."""
     range_header = request.headers.get("Range", 0)
 
     index = min(work_loads, key=work_loads.get)
@@ -127,16 +121,17 @@ async def media_streamer(request: web.Request, message_id: int, secure_hash: str
     first_part_cut = from_bytes - offset
     last_part_cut = (until_bytes % new_chunk_size) + 1
     part_count = math.ceil(req_length / new_chunk_size)
-
     body = tg_connect.yield_file(
         file_id, index, offset, first_part_cut, last_part_cut, part_count, new_chunk_size
     )
 
     mime_type = file_id.mime_type
-    file_name = file_id.file_name or f"{secrets.token_hex(2)}.unknown"
+    file_name = file_id.file_name
+    disposition = "inline" if mime_type and mime_type.startswith(("video", "audio")) else "attachment"
 
-    if not mime_type:
-        mime_type = mimetypes.guess_type(file_name)[0] or "application/octet-stream"
+    if mime_type is None:
+        mime_type = "application/octet-stream"
+        file_name = file_name or f"{secrets.token_hex(2)}.unknown"
 
     return_resp = web.Response(
         status=206 if range_header else 200,
@@ -145,7 +140,7 @@ async def media_streamer(request: web.Request, message_id: int, secure_hash: str
             "Content-Type": mime_type,
             "Range": f"bytes={from_bytes}-{until_bytes}",
             "Content-Range": f"bytes {from_bytes}-{until_bytes}/{file_size}",
-            "Content-Disposition": f'inline; filename="{file_name}"',
+            "Content-Disposition": f'{disposition}; filename="{file_name}"',
             "Accept-Ranges": "bytes",
         },
     )
