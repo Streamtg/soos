@@ -1,105 +1,93 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta property="og:image" content="https://www.flaticon.com/premium-icon/icons/svg/2626/2626281.svg" itemprop="thumbnailUrl">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>%s</title>
-
-    <!-- Fuentes y estilos -->
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Raleway|Delius">
-    <link rel="stylesheet" href="https://cdn.plyr.io/3.5.6/plyr.css">
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-        :root {
-            --bg-color: #121212;
-            --header-bg: #1e1e1e;
-            --footer-bg: #1e1e1e;
-            --text-color: #ffffff;
-            --accent-color: #ff5555;
-        }
-
+        /* Reset y tipografía */
         body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background-color: #0f0f0f;
+            color: #fff;
             margin: 0;
-            font-family: 'Raleway', sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-color);
-        }
-
-        header {
-            padding: 15px;
+            padding: 0;
             text-align: center;
-            background: var(--header-bg);
-            font-size: 1.2em;
-            font-weight: bold;
-            word-break: break-word;
         }
 
+        /* Contenedor principal */
         .container {
-            display: flex;
-            justify-content: center;
+            max-width: 900px;
+            margin: auto;
             padding: 20px;
         }
 
-        video, audio {
-            width: 100%%;
-            max-width: 900px;
-            border-radius: 10px;
-            box-shadow: 0 0 20px rgba(0,0,0,0.5);
-            background: #000;
+        /* Encabezado */
+        h1 {
+            font-size: 1.4rem;
+            font-weight: normal;
+            margin-bottom: 20px;
+            word-wrap: break-word;
         }
 
-        footer {
-            text-align: center;
-            padding: 15px;
-            background: var(--footer-bg);
-            font-size: 0.9em;
+        /* Player responsive */
+        .player {
+            width: 100%;
+            max-height: 75vh;
+            border-radius: 12px;
+            background-color: #000;
+            box-shadow: 0 0 15px rgba(0,0,0,0.6);
         }
 
-        footer a {
-            color: var(--accent-color);
+        /* Botón de descarga */
+        .download-btn {
+            display: inline-block;
+            padding: 12px 20px;
+            margin-top: 20px;
+            background: linear-gradient(90deg, #ff9800, #ff5722);
+            color: white;
             text-decoration: none;
-            font-weight: bold;
+            font-size: 1rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+            transition: 0.3s ease;
         }
 
-        @media (max-width: 768px) {
-            header {
-                font-size: 1em;
+        .download-btn:hover {
+            opacity: 0.85;
+        }
+
+        /* Footer */
+        footer {
+            margin-top: 30px;
+            font-size: 0.8rem;
+            color: #aaa;
+        }
+
+        /* Ajustes móviles */
+        @media (max-width: 600px) {
+            h1 {
+                font-size: 1.1rem;
             }
-            video, audio {
-                max-width: 100%%;
+            .download-btn {
+                padding: 10px 15px;
+                font-size: 0.9rem;
             }
         }
     </style>
 </head>
-
 <body>
-    <header>
-        %s
-    </header>
 
     <div class="container">
+        <h1>%s</h1>
+
+        <!-- Aquí se inyecta el reproductor o enlace -->
         %s
+
+        <footer>
+            Servido por <strong>@%s</strong>
+        </footer>
     </div>
 
-    <footer>
-        📢 Visítanos en nuestro canal de Telegram →
-        <a href="https://t.me/peligxg" target="_blank">@peligxg</a>
-    </footer>
-
-    <!-- Scripts -->
-    <script src="https://cdn.plyr.io/3.5.6/plyr.js"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            Plyr.setup('.player', {
-                controls: [
-                    'play-large', 'rewind', 'play', 'fast-forward', 'progress',
-                    'current-time', 'duration', 'mute', 'volume', 'settings',
-                    'pip', 'airplay', 'fullscreen'
-                ]
-            });
-        });
-    </script>
 </body>
 </html>
