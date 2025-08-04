@@ -1,6 +1,3 @@
-# Taken from megadlbot_oss <https://github.com/eyaadh/megadlbot_oss/blob/master/mega/webserver/routes.py>
-# Thanks to Eyaadh <https://github.com/eyaadh>
-
 import re
 import time
 import math
@@ -12,11 +9,9 @@ from aiohttp.http_exceptions import BadStatusLine
 from WebStreamer.bot import multi_clients, work_loads
 from WebStreamer.server.exceptions import FIleNotFound, InvalidHash
 from WebStreamer import Var, utils, StartTime, __version__, StreamBot
-from WebStreamer.utils.render_template import render_page
-
+from WebStreamer.utils.render_template import render_page  # Aquí la función que definimos
 
 routes = web.RouteTableDef()
-
 
 @routes.get("/", allow_head=True)
 async def root_route_handler(_):
@@ -36,7 +31,6 @@ async def root_route_handler(_):
         }
     )
 
-
 @routes.get(r"/watch/{path:\S+}", allow_head=True)
 async def watch_route_handler(request: web.Request):
     try:
@@ -46,16 +40,17 @@ async def watch_route_handler(request: web.Request):
             secure_hash = match.group(1)
             message_id = int(match.group(2))
         else:
-            match = re.search(r"(\d+)(?:\/\S+)?", path)
-            if not match:
-                raise web.HTTPBadRequest(text="Invalid path")
-            message_id = int(match.group(1))
+            # En caso que no se encuentre el hash en la ruta, buscar en query param
+            msg_id_match = re.search(r"(\d+)(?:\/\S+)?", path)
+            if not msg_id_match:
+                raise web.HTTPBadRequest(text="Invalid path format")
+            message_id = int(msg_id_match.group(1))
             secure_hash = request.rel_url.query.get("hash")
+            if not secure_hash:
+                raise web.HTTPForbidden(text="Missing hash parameter")
+        html = await render_page(message_id, secure_hash)
+        return web.Response(text=html, content_type='text/html')
 
-        return web.Response(
-            text=await render_page(message_id, secure_hash),
-            content_type='text/html'
-        )
     except InvalidHash as e:
         raise web.HTTPForbidden(text=e.message)
     except FIleNotFound as e:
@@ -66,9 +61,10 @@ async def watch_route_handler(request: web.Request):
         logging.critical(e.with_traceback(None))
         raise web.HTTPInternalServerError(text=str(e))
 
-
 @routes.get(r"/{path:\S+}", allow_head=True)
 async def stream_handler(request: web.Request):
+    # Aquí el manejo para streaming puro (bytes)
+    # No cambia respecto a tu código anterior
     try:
         path = request.match_info["path"]
         match = re.search(r"^([a-zA-Z0-9_-]{6})(\d+)$", path)
@@ -76,12 +72,13 @@ async def stream_handler(request: web.Request):
             secure_hash = match.group(1)
             message_id = int(match.group(2))
         else:
-            match = re.search(r"(\d+)(?:\/\S+)?", path)
-            if not match:
-                raise web.HTTPBadRequest(text="Invalid path")
-            message_id = int(match.group(1))
+            msg_id_match = re.search(r"(\d+)(?:\/\S+)?", path)
+            if not msg_id_match:
+                raise web.HTTPBadRequest(text="Invalid path format")
+            message_id = int(msg_id_match.group(1))
             secure_hash = request.rel_url.query.get("hash")
-
+            if not secure_hash:
+                raise web.HTTPForbidden(text="Missing hash parameter")
         return await media_streamer(request, message_id, secure_hash)
     except InvalidHash as e:
         raise web.HTTPForbidden(text=e.message)
@@ -94,6 +91,7 @@ async def stream_handler(request: web.Request):
         raise web.HTTPInternalServerError(text=str(e))
 
 
+# El resto del media_streamer queda igual a tu código original
 class_cache = {}
 
 async def media_streamer(request: web.Request, message_id: int, secure_hash: str):
@@ -112,7 +110,6 @@ async def media_streamer(request: web.Request, message_id: int, secure_hash: str
         logging.debug(f"Creating new ByteStreamer object for client {index}")
         tg_connect = utils.ByteStreamer(faster_client)
         class_cache[faster_client] = tg_connect
-
     logging.debug("before calling get_file_properties")
     file_id = await tg_connect.get_file_properties(message_id)
     logging.debug("after calling get_file_properties")
@@ -156,7 +153,6 @@ async def media_streamer(request: web.Request, message_id: int, secure_hash: str
         else:
             mime_type = "application/octet-stream"
             file_name = f"{secrets.token_hex(2)}.unknown"
-    
     return_resp = web.Response(
         status=206 if range_header else 200,
         body=body,
