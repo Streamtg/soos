@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>{heading}</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+    body {
+        background-color: #111;
+        color: white;
+        font-family: Arial, sans-serif;
+        text-align: center;
+        margin: 0;
+        padding: 0;
+    }
+    header {
+        padding: 15px;
+        background: #222;
+        font-size: 18px;
+        font-weight: bold;
+        word-break: break-word;
+    }
+    .container {
+        padding: 20px;
+    }
+    video, audio {
+        width: 100%;
+        max-width: 800px;
+        border-radius: 8px;
+        outline: none;
+    }
+    a.download-btn {
+        display: inline-block;
+        margin-top: 20px;
+        padding: 12px 20px;
+        font-size: 16px;
+        background: #28a745;
+        color: white;
+        text-decoration: none;
+        border-radius: 6px;
+        transition: background 0.3s ease;
+    }
+    a.download-btn:hover {
+        background: #218838;
+    }
+    .file-info {
+        margin-top: 10px;
+        font-size: 14px;
+        color: #bbb;
+    }
+</style>
+</head>
+<body>
+
+<header>{heading}</header>
+
+<div class="container">
+    <!-- Reproductor dinámico -->
+    {player}
+
+    <!-- Info para descargas -->
+    <div class="file-info">
+        Nombre: {filename} <br>
+        {filesize}
+    </div>
+</div>
+
+</body>
+</html>
