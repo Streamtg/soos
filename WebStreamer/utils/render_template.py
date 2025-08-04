@@ -8,6 +8,7 @@ from WebStreamer.utils.human_readable import humanbytes
 from WebStreamer.utils.file_properties import get_file_ids
 from WebStreamer.server.exceptions import InvalidHash
 
+
 async def render_page(message_id, secure_hash):
     file_data = await get_file_ids(StreamBot, int(Var.BIN_CHANNEL), int(message_id))
     if file_data.unique_id[:6] != secure_hash:
@@ -16,38 +17,25 @@ async def render_page(message_id, secure_hash):
         raise InvalidHash
 
     src = urllib.parse.urljoin(Var.URL, f'{secure_hash}{str(message_id)}')
-    main_type = file_data.mime_type.split('/')[0].strip() if file_data.mime_type else ""
+    mime_main = file_data.mime_type.split('/')[0].strip()
 
-    if main_type == 'video' or main_type == 'audio':
-        # Usar plantilla única responsive para multimedia
-        async with aiofiles.open('WebStreamer/template/req.html', encoding='utf-8') as r:
-            heading = ('Watch' if main_type == 'video' else 'Listen') + f" {file_data.file_name}"
-            tag_html = ''
-            if main_type == 'video':
-                tag_html = (
-                    f'<video controls playsinline style="max-width:100%; height:auto;">'
-                    f'<source src="{src}" type="{file_data.mime_type}">'
-                    'Tu navegador no soporta video HTML5.'
-                    '</video>'
-                )
-            elif main_type == 'audio':
-                tag_html = (
-                    f'<audio controls style="width:100%;">'
-                    f'<source src="{src}" type="{file_data.mime_type}">'
-                    'Tu navegador no soporta audio HTML5.'
-                    '</audio>'
-                )
-            template = await r.read()
-            html = template.replace('tag', tag_html) % (heading, file_data.file_name, tag_html)
+    async with aiofiles.open('WebStreamer/template/media.html') as f:
+        template = await f.read()
 
+    if mime_main == 'video':
+        heading = f'Watch {file_data.file_name}'
+        media_content = f'<video controls playsinline src="{src}"></video>'
+    elif mime_main == 'audio':
+        heading = f'Listen {file_data.file_name}'
+        media_content = f'<audio controls src="{src}"></audio>'
     else:
-        # Para otro contenido, usar plantilla de descarga con tamaño legible
-        async with aiofiles.open('WebStreamer/template/dl.html', encoding='utf-8') as r:
-            async with aiohttp.ClientSession() as s:
-                async with s.head(src) as head_resp:
-                    file_size = humanbytes(int(head_resp.headers.get('Content-Length', 0)))
-            heading = f'Download {file_data.file_name}'
-            template = await r.read()
-            html = template % (heading, file_data.file_name, src, file_size)
+        # Para descarga, obtenemos el tamaño del archivo
+        async with aiohttp.ClientSession() as session:
+            async with session.head(src) as resp:
+                content_length = resp.headers.get('Content-Length', '0')
+                file_size = humanbytes(int(content_length))
+        heading = f'Download {file_data.file_name}'
+        media_content = f'<a href="{src}" download class="download-link">📥 Download {file_data.file_name}</a><p class="file-size">File size: {file_size}</p>'
 
+    html = template.format(heading=heading, filename=file_data.file_name, media_content=media_content)
     return html
