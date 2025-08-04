@@ -5,89 +5,41 @@
     <title>%s</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-        /* Reset y tipografía */
         body {
-            font-family: 'Segoe UI', Arial, sans-serif;
-            background-color: #0f0f0f;
-            color: #fff;
-            margin: 0;
-            padding: 0;
+            font-family: sans-serif;
             text-align: center;
-        }
-
-        /* Contenedor principal */
-        .container {
-            max-width: 900px;
-            margin: auto;
             padding: 20px;
-        }
-
-        /* Encabezado */
-        h1 {
-            font-size: 1.4rem;
-            font-weight: normal;
-            margin-bottom: 20px;
-            word-wrap: break-word;
-        }
-
-        /* Player responsive */
-        .player {
-            width: 100%;
-            max-height: 75vh;
-            border-radius: 12px;
-            background-color: #000;
-            box-shadow: 0 0 15px rgba(0,0,0,0.6);
-        }
-
-        /* Botón de descarga */
-        .download-btn {
-            display: inline-block;
-            padding: 12px 20px;
-            margin-top: 20px;
-            background: linear-gradient(90deg, #ff9800, #ff5722);
+            background: #121212;
             color: white;
+        }
+        h1 {
+            font-size: 1.4em;
+        }
+        .player, .download-link {
+            width: 100%;
+            max-width: 800px;
+            margin: 20px auto;
+            display: block;
+        }
+        video, audio {
+            width: 100%;
+            height: auto;
+            background: black;
+        }
+        a.download-link {
+            padding: 12px 20px;
+            background: #2196F3;
+            color: white;
+            border-radius: 6px;
             text-decoration: none;
-            font-size: 1rem;
-            border-radius: 8px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.4);
-            transition: 0.3s ease;
         }
-
-        .download-btn:hover {
-            opacity: 0.85;
-        }
-
-        /* Footer */
-        footer {
-            margin-top: 30px;
-            font-size: 0.8rem;
-            color: #aaa;
-        }
-
-        /* Ajustes móviles */
-        @media (max-width: 600px) {
-            h1 {
-                font-size: 1.1rem;
-            }
-            .download-btn {
-                padding: 10px 15px;
-                font-size: 0.9rem;
-            }
+        a.download-link:hover {
+            background: #0b7dda;
         }
     </style>
 </head>
 <body>
-
-    <div class="container">
-        <h1>%s</h1>
-
-        <!-- Aquí se inyecta el reproductor o enlace -->
-        %s
-
-        <footer>
-            Servido por <strong>@%s</strong>
-        </footer>
-    </div>
-
+    <h1>%s</h1>
+    %s
 </body>
 </html>
