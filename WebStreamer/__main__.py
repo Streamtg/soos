@@ -3,25 +3,47 @@
 import sys
 import asyncio
 import logging
-from .vars import Var
 from aiohttp import web
 from pyrogram import idle
-from WebStreamer import utils
-from WebStreamer import StreamBot
-from WebStreamer.server import web_server
-from WebStreamer.bot.clients import initialize_clients
 
+from .vars import Var
+from WebStreamer import utils, StreamBot
+from WebStreamer.server import stream_routes  # Importa las rutas
+from WebStreamer.bot.clients import initialize_clients
+import aiohttp_jinja2
+import jinja2
 
 logging.basicConfig(
     level=logging.INFO,
     datefmt="%d/%m/%Y %H:%M:%S",
     format='[%(asctime)s] {%(pathname)s:%(lineno)d} %(levelname)s - %(message)s',
-    handlers=[logging.StreamHandler(stream=sys.stdout),
-              logging.FileHandler("streambot.log", mode="a", encoding="utf-8")],)
+    handlers=[
+        logging.StreamHandler(stream=sys.stdout),
+        logging.FileHandler("streambot.log", mode="a", encoding="utf-8"),
+    ],
+)
 
 logging.getLogger("aiohttp").setLevel(logging.ERROR)
 logging.getLogger("pyrogram").setLevel(logging.ERROR)
 logging.getLogger("aiohttp.web").setLevel(logging.ERROR)
+
+
+def web_server():
+    # Crear la app aiohttp
+    app = web.Application()
+
+    # Configurar Jinja2
+    aiohttp_jinja2.setup(
+        app,
+        loader=jinja2.FileSystemLoader("WebStreamer/template"),
+        autoescape=True,
+    )
+
+    # Registrar rutas desde stream_routes.py
+    app.add_routes(stream_routes.routes)
+
+    return app
+
 
 server = web.AppRunner(web_server())
 
@@ -31,6 +53,7 @@ if sys.version_info[1] > 9:
 else:
     loop = asyncio.get_event_loop()
 
+
 async def start_services():
     print()
     print("-------------------- Initializing Telegram Bot --------------------")
@@ -39,34 +62,37 @@ async def start_services():
     StreamBot.username = bot_info.username
     print("------------------------------ DONE ------------------------------")
     print()
-    print(
-        "---------------------- Initializing Clients ----------------------"
-    )
+    print("---------------------- Initializing Clients ----------------------")
     await initialize_clients()
     print("------------------------------ DONE ------------------------------")
+
     if Var.ON_HEROKU:
         print("------------------ Starting Keep Alive Service ------------------")
         print()
         asyncio.create_task(utils.ping_server())
-    print("--------------------- Initalizing Web Server ---------------------")
+
+    print("--------------------- Initializing Web Server ---------------------")
     await server.setup()
     bind_address = "0.0.0.0" if Var.ON_HEROKU else Var.BIND_ADDRESS
     await web.TCPSite(server, bind_address, Var.PORT).start()
     print("------------------------------ DONE ------------------------------")
     print()
     print("------------------------- Service Started -------------------------")
-    print("                        bot =>> {}".format(bot_info.first_name))
+    print(f"                        bot =>> {bot_info.first_name}")
     if bot_info.dc_id:
-        print("                        DC ID =>> {}".format(str(bot_info.dc_id)))
-    print("                        server ip =>> {}".format(bind_address, Var.PORT))
+        print(f"                        DC ID =>> {bot_info.dc_id}")
+    print(f"                        server ip =>> {bind_address}:{Var.PORT}")
     if Var.ON_HEROKU:
-        print("                        app running on =>> {}".format(Var.FQDN))
+        print(f"                        app running on =>> {Var.FQDN}")
     print("------------------------------------------------------------------")
+
     await idle()
+
 
 async def cleanup():
     await server.cleanup()
     await StreamBot.stop()
+
 
 if __name__ == "__main__":
     try:
