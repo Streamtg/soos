@@ -3,61 +3,56 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>{heading}</title>
+<title>{{ title }}</title>
 <style>
   body {
+    margin: 0; padding: 0;
     font-family: Arial, sans-serif;
     background: #121212;
     color: #eee;
     display: flex;
-    flex-direction: column;
-    align-items: center;
     justify-content: center;
-    min-height: 100vh;
-    margin: 0;
-    padding: 20px;
-    text-align: center;
+    align-items: center;
+    height: 100vh;
+    flex-direction: column;
   }
   h1 {
-    margin-bottom: 1em;
+    margin-bottom: 1rem;
   }
   video, audio {
-    max-width: 100%;
+    max-width: 90vw;
+    max-height: 60vh;
     border-radius: 8px;
-    background: black;
-    outline: none;
-  }
-  video {
-    height: auto;
-  }
-  audio {
-    width: 100%;
+    box-shadow: 0 0 10px #0af;
   }
   a.download-link {
-    display: inline-block;
-    margin-top: 20px;
-    background-color: #2196F3;
-    color: white;
-    padding: 15px 30px;
-    font-weight: bold;
-    font-size: 1.2em;
-    border-radius: 8px;
+    color: #0af;
+    font-size: 1.2rem;
     text-decoration: none;
-    transition: background-color 0.3s ease;
+    padding: 0.5rem 1rem;
+    border: 2px solid #0af;
+    border-radius: 8px;
   }
   a.download-link:hover {
-    background-color: #0b7dda;
+    background-color: #0af;
+    color: #121212;
   }
-  p.file-size {
-    margin-top: 10px;
-    color: #bbb;
+  @media (max-width: 600px) {
+    video, audio {
+      max-width: 100vw;
+      max-height: 40vh;
+    }
   }
 </style>
 </head>
 <body>
-  <h1>{filename}</h1>
-  
-  {media_content}
-  
+  <h1>{{ title }}</h1>
+  {% if media_type == 'video' %}
+    <video src="{{ src }}" controls playsinline autoplay></video>
+  {% elif media_type == 'audio' %}
+    <audio src="{{ src }}" controls autoplay></audio>
+  {% else %}
+    <a href="{{ src }}" class="download-link" download>📥 Descargar {{ file_name }}</a>
+  {% endif %}
 </body>
 </html>
