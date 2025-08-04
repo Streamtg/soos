@@ -1,45 +1,58 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <title>%s</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <style>
-        body {
-            font-family: sans-serif;
-            text-align: center;
-            padding: 20px;
-            background: #121212;
-            color: white;
-        }
-        h1 {
-            font-size: 1.4em;
-        }
-        .player, .download-link {
-            width: 100%;
-            max-width: 800px;
-            margin: 20px auto;
-            display: block;
-        }
-        video, audio {
-            width: 100%;
-            height: auto;
-            background: black;
-        }
-        a.download-link {
-            padding: 12px 20px;
-            background: #2196F3;
-            color: white;
-            border-radius: 6px;
-            text-decoration: none;
-        }
-        a.download-link:hover {
-            background: #0b7dda;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>%s</title>
+<style>
+    body {
+        background-color: #111;
+        color: #fff;
+        font-family: Arial, sans-serif;
+        text-align: center;
+        margin: 0;
+        padding: 0;
+    }
+    header {
+        padding: 15px;
+        background: #222;
+        font-size: 1.2rem;
+        font-weight: bold;
+        word-wrap: break-word;
+    }
+    .player-container {
+        max-width: 100%%; /* Escapado %% para evitar error Python */
+        padding: 10px;
+    }
+    video, audio {
+        width: 100%%;
+        max-width: 800px;
+        height: auto;
+        border-radius: 8px;
+        outline: none;
+    }
+    a.download-link {
+        display: inline-block;
+        margin-top: 20px;
+        padding: 12px 20px;
+        background: #28a745;
+        color: white;
+        text-decoration: none;
+        border-radius: 6px;
+        font-size: 1rem;
+    }
+    a.download-link:hover {
+        background: #218838;
+    }
+</style>
 </head>
 <body>
-    <h1>%s</h1>
-    %s
+
+<header>%s</header>
+
+<div class="player-container">
+    tag
+</div>
+
 </body>
 </html>
