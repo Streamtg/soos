@@ -2,7 +2,7 @@
 # Encargado de exponer las rutas y levantar el servidor web con aiohttp
 
 from aiohttp import web
-from .stream_routes import routes  # Importa las rutas desde tu archivo principal de rutas
+from .stream_routes import routes # Importa las rutas desde tu archivo principal de rutas
 
 def web_server():
     """
