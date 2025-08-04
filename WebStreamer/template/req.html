@@ -1,58 +1,63 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>%s</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>{heading}</title>
 <style>
-    body {
-        background-color: #111;
-        color: #fff;
-        font-family: Arial, sans-serif;
-        text-align: center;
-        margin: 0;
-        padding: 0;
-    }
-    header {
-        padding: 15px;
-        background: #222;
-        font-size: 1.2rem;
-        font-weight: bold;
-        word-wrap: break-word;
-    }
-    .player-container {
-        max-width: 100%%; /* Escapado %% para evitar error Python */
-        padding: 10px;
-    }
-    video, audio {
-        width: 100%%;
-        max-width: 800px;
-        height: auto;
-        border-radius: 8px;
-        outline: none;
-    }
-    a.download-link {
-        display: inline-block;
-        margin-top: 20px;
-        padding: 12px 20px;
-        background: #28a745;
-        color: white;
-        text-decoration: none;
-        border-radius: 6px;
-        font-size: 1rem;
-    }
-    a.download-link:hover {
-        background: #218838;
-    }
+  body {
+    font-family: Arial, sans-serif;
+    background: #121212;
+    color: #eee;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    margin: 0;
+    padding: 20px;
+    text-align: center;
+  }
+  h1 {
+    margin-bottom: 1em;
+  }
+  video, audio {
+    max-width: 100%;
+    border-radius: 8px;
+    background: black;
+    outline: none;
+  }
+  video {
+    height: auto;
+  }
+  audio {
+    width: 100%;
+  }
+  a.download-link {
+    display: inline-block;
+    margin-top: 20px;
+    background-color: #2196F3;
+    color: white;
+    padding: 15px 30px;
+    font-weight: bold;
+    font-size: 1.2em;
+    border-radius: 8px;
+    text-decoration: none;
+    transition: background-color 0.3s ease;
+  }
+  a.download-link:hover {
+    background-color: #0b7dda;
+  }
+  p.file-size {
+    margin-top: 10px;
+    color: #bbb;
+  }
 </style>
 </head>
 <body>
-
-<header>%s</header>
-
-<div class="player-container">
-    tag
-</div>
-
+  <h1>{filename}</h1>
+  
+  {media_content}
+  
 </body>
 </html>
