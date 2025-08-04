@@ -1,10 +1,12 @@
+# Taken from megadlbot_oss <https://github.com/eyaadh/megadlbot_oss/blob/master/mega/webserver/routes.py>
+# Thanks to Eyaadh <https://github.com/eyaadh>
+
 import re
 import time
 import math
 import logging
 import secrets
 import mimetypes
-import os
 from aiohttp import web
 from aiohttp.http_exceptions import BadStatusLine
 from WebStreamer.bot import multi_clients, work_loads
@@ -12,33 +14,12 @@ from WebStreamer.server.exceptions import FIleNotFound, InvalidHash
 from WebStreamer import Var, utils, StartTime, __version__, StreamBot
 from WebStreamer.utils.render_template import render_page
 
+
 routes = web.RouteTableDef()
-
-# Ruta absoluta a la plantilla HTML
-REQ_TEMPLATE_PATH = os.path.join("WebStreamer", "template", "req.html")
-
-def render_player_html(file_name: str, stream_url: str) -> str:
-    """Genera el HTML para el reproductor según el tipo de archivo."""
-    mime_type, _ = mimetypes.guess_type(file_name)
-
-    if mime_type and mime_type.startswith("video"):
-        player_tag = f'<video src="{stream_url}" class="player" controls playsinline></video>'
-    elif mime_type and mime_type.startswith("audio"):
-        player_tag = f'<audio src="{stream_url}" class="player" controls></audio>'
-    else:
-        # Si no es audio ni video, mostramos enlace de descarga
-        player_tag = f'<a href="{stream_url}" class="download-link" download>📥 Descargar {file_name}</a>'
-
-    with open(REQ_TEMPLATE_PATH, "r", encoding="utf-8") as f:
-        template = f.read()
-
-    # Reemplaza los %s del template: título, header, contenido (reproductor o enlace)
-    return template % (file_name, file_name, player_tag)
 
 
 @routes.get("/", allow_head=True)
 async def root_route_handler(_):
-    """Estado básico del servidor"""
     return web.json_response(
         {
             "server_status": "running",
@@ -58,7 +39,6 @@ async def root_route_handler(_):
 
 @routes.get(r"/watch/{path:\S+}", allow_head=True)
 async def watch_route_handler(request: web.Request):
-    """Página de vista previa estándar"""
     try:
         path = request.match_info["path"]
         match = re.search(r"^([a-zA-Z0-9_-]{6})(\d+)$", path)
@@ -66,51 +46,29 @@ async def watch_route_handler(request: web.Request):
             secure_hash = match.group(1)
             message_id = int(match.group(2))
         else:
-            message_id = int(re.search(r"(\d+)", path).group(1))
+            match = re.search(r"(\d+)(?:\/\S+)?", path)
+            if not match:
+                raise web.HTTPBadRequest(text="Invalid path")
+            message_id = int(match.group(1))
             secure_hash = request.rel_url.query.get("hash")
-        return web.Response(text=await render_page(message_id, secure_hash), content_type='text/html')
+
+        return web.Response(
+            text=await render_page(message_id, secure_hash),
+            content_type='text/html'
+        )
     except InvalidHash as e:
         raise web.HTTPForbidden(text=e.message)
     except FIleNotFound as e:
         raise web.HTTPNotFound(text=e.message)
-
-
-@routes.get(r"/dl/{path:\S+}", allow_head=True)
-async def dl_player_handler(request: web.Request):
-    """Plantilla responsive con reproductor integrado"""
-    try:
-        path = request.match_info["path"]
-        match = re.search(r"^([a-zA-Z0-9_-]{6})(\d+)$", path)
-        if match:
-            secure_hash = match.group(1)
-            message_id = int(match.group(2))
-        else:
-            message_id = int(re.search(r"(\d+)", path).group(1))
-            secure_hash = request.rel_url.query.get("hash")
-
-        # Cliente con menos carga
-        index = min(work_loads, key=work_loads.get)
-        faster_client = multi_clients[index]
-        tg_connect = utils.ByteStreamer(faster_client)
-
-        file_id = await tg_connect.get_file_properties(message_id)
-        file_name = file_id.file_name or f"{secrets.token_hex(2)}.unknown"
-
-        # URL interna para el stream (usando hash + id)
-        stream_url = f"/{secure_hash}{message_id}"
-
-        html_content = render_player_html(file_name, stream_url)
-        return web.Response(text=html_content, content_type="text/html")
-
-    except InvalidHash as e:
-        raise web.HTTPForbidden(text=e.message)
-    except FIleNotFound as e:
-        raise web.HTTPNotFound(text=e.message)
+    except (AttributeError, BadStatusLine, ConnectionResetError):
+        pass
+    except Exception as e:
+        logging.critical(e.with_traceback(None))
+        raise web.HTTPInternalServerError(text=str(e))
 
 
 @routes.get(r"/{path:\S+}", allow_head=True)
 async def stream_handler(request: web.Request):
-    """Streaming binario del archivo"""
     try:
         path = request.match_info["path"]
         match = re.search(r"^([a-zA-Z0-9_-]{6})(\d+)$", path)
@@ -118,38 +76,51 @@ async def stream_handler(request: web.Request):
             secure_hash = match.group(1)
             message_id = int(match.group(2))
         else:
-            message_id = int(re.search(r"(\d+)", path).group(1))
+            match = re.search(r"(\d+)(?:\/\S+)?", path)
+            if not match:
+                raise web.HTTPBadRequest(text="Invalid path")
+            message_id = int(match.group(1))
             secure_hash = request.rel_url.query.get("hash")
+
         return await media_streamer(request, message_id, secure_hash)
     except InvalidHash as e:
         raise web.HTTPForbidden(text=e.message)
     except FIleNotFound as e:
         raise web.HTTPNotFound(text=e.message)
+    except (AttributeError, BadStatusLine, ConnectionResetError):
+        pass
+    except Exception as e:
+        logging.critical(e.with_traceback(None))
+        raise web.HTTPInternalServerError(text=str(e))
 
 
 class_cache = {}
 
 async def media_streamer(request: web.Request, message_id: int, secure_hash: str):
-    """Sirve el contenido binario desde Telegram"""
     range_header = request.headers.get("Range", 0)
-
+    
     index = min(work_loads, key=work_loads.get)
     faster_client = multi_clients[index]
-
+    
     if Var.MULTI_CLIENT:
         logging.info(f"Client {index} is now serving {request.remote}")
 
     if faster_client in class_cache:
         tg_connect = class_cache[faster_client]
+        logging.debug(f"Using cached ByteStreamer object for client {index}")
     else:
+        logging.debug(f"Creating new ByteStreamer object for client {index}")
         tg_connect = utils.ByteStreamer(faster_client)
         class_cache[faster_client] = tg_connect
 
+    logging.debug("before calling get_file_properties")
     file_id = await tg_connect.get_file_properties(message_id)
-
+    logging.debug("after calling get_file_properties")
+    
     if file_id.unique_id[:6] != secure_hash:
+        logging.debug(f"Invalid hash for message with ID {message_id}")
         raise InvalidHash
-
+    
     file_size = file_id.file_size
 
     if range_header:
@@ -157,8 +128,8 @@ async def media_streamer(request: web.Request, message_id: int, secure_hash: str
         from_bytes = int(from_bytes)
         until_bytes = int(until_bytes) if until_bytes else file_size - 1
     else:
-        from_bytes = 0
-        until_bytes = file_size - 1
+        from_bytes = request.http_range.start or 0
+        until_bytes = request.http_range.stop or file_size - 1
 
     req_length = until_bytes - from_bytes
     new_chunk_size = await utils.chunk_size(req_length)
@@ -166,21 +137,34 @@ async def media_streamer(request: web.Request, message_id: int, secure_hash: str
     first_part_cut = from_bytes - offset
     last_part_cut = (until_bytes % new_chunk_size) + 1
     part_count = math.ceil(req_length / new_chunk_size)
-
     body = tg_connect.yield_file(
         file_id, index, offset, first_part_cut, last_part_cut, part_count, new_chunk_size
     )
 
-    mime_type = file_id.mime_type or mimetypes.guess_type(file_id.file_name)[0] or "application/octet-stream"
-    file_name = file_id.file_name or f"{secrets.token_hex(2)}.unknown"
-
+    mime_type = file_id.mime_type
+    file_name = file_id.file_name
+    disposition = "attachment"
+    if mime_type:
+        if not file_name:
+            try:
+                file_name = f"{secrets.token_hex(2)}.{mime_type.split('/')[1]}"
+            except (IndexError, AttributeError):
+                file_name = f"{secrets.token_hex(2)}.unknown"
+    else:
+        if file_name:
+            mime_type = mimetypes.guess_type(file_id.file_name)[0]
+        else:
+            mime_type = "application/octet-stream"
+            file_name = f"{secrets.token_hex(2)}.unknown"
+    
     return_resp = web.Response(
         status=206 if range_header else 200,
         body=body,
         headers={
             "Content-Type": f"{mime_type}",
+            "Range": f"bytes={from_bytes}-{until_bytes}",
             "Content-Range": f"bytes {from_bytes}-{until_bytes}/{file_size}",
-            "Content-Disposition": f'attachment; filename="{file_name}"',
+            "Content-Disposition": f'{disposition}; filename="{file_name}"',
             "Accept-Ranges": "bytes",
         },
     )
