@@ -1,32 +1,24 @@
-cat > requirements.txt <<'REQEOF'
-# UI
 gradio==5.33.0
 
-# Audio/Video
-ffmpeg-python==0.2.0
-pydub==0.25.1
-soundfile==0.13.1
-librosa==0.10.2.post1
-audioread==3.0.1
+ffmpeg-python
+pydub
+soundfile
+librosa
+audioread
 pyrubberband
 
-# AI - CPU optimized
 faster-whisper
 ctranslate2
 
-# TTS (no GPU needed)
 edge-tts
 gTTS
 
-# Translation
 deep-translator
 
-# Utils
-numpy<2.0.0
+numpy<2
 scipy
 tqdm
 requests
 yt-dlp
 noisereduce
 langid
-REQEOF
