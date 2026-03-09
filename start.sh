@@ -1,19 +1,19 @@
 #!/bin/bash
 
 SCRATCH=/home/idies/workspace/Temporary/100895/scratch
-APP_DIR=$SCRATCH/sonitranslate
-VENV_DIR=$APP_DIR/venv
-BIN_DIR=$APP_DIR/bin
-CACHE_DIR=$APP_DIR/cache
+APP=$SCRATCH/sonitranslate
+BIN=$APP/bin
+CACHE=$APP/cache
+VENV=$APP/venv
 
-export PATH=$BIN_DIR:$PATH
-export HF_HOME=$CACHE_DIR
-export XDG_CACHE_HOME=$CACHE_DIR
+export PATH=$BIN:$PATH
+export HF_HOME=$CACHE
+export XDG_CACHE_HOME=$CACHE
 
-cd $APP_DIR
+cd $APP
 
-source $VENV_DIR/bin/activate
+source $VENV/bin/activate
 
-echo "Iniciando SoniTranslate..."
+echo "Iniciando SoniTranslate"
 
 python app.py
