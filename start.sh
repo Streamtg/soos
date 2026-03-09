@@ -1,49 +1,19 @@
-cat > start.sh <<'STARTEOF'
 #!/bin/bash
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-cd "$SCRIPT_DIR"
+SCRATCH=/home/idies/workspace/Temporary/100895/scratch
+APP_DIR=$SCRATCH/sonitranslate
+VENV_DIR=$APP_DIR/venv
+BIN_DIR=$APP_DIR/bin
+CACHE_DIR=$APP_DIR/cache
 
-echo "╔══════════════════════════════════════════════╗"
-echo "║  🎬 SoniTranslate Pro                        ║"
-echo "╚══════════════════════════════════════════════╝"
+export PATH=$BIN_DIR:$PATH
+export HF_HOME=$CACHE_DIR
+export XDG_CACHE_HOME=$CACHE_DIR
 
-# Activar entorno
-if [ ! -d "venv" ]; then
-    echo "❌ Entorno no encontrado. Ejecuta primero: ./install.sh"
-    exit 1
-fi
+cd $APP_DIR
 
-source venv/bin/activate
+source $VENV_DIR/bin/activate
 
-# Verificación rápida
-python3 -c "import gradio, torch, faster_whisper, edge_tts" 2>/dev/null
-if [ $? -ne 0 ]; then
-    echo "❌ Dependencias faltantes. Ejecuta: ./install.sh"
-    exit 1
-fi
+echo "Iniciando SoniTranslate..."
 
-# Detectar IP local
-LOCAL_IP=$(hostname -I 2>/dev/null | awk '{print $1}')
-if [ -z "$LOCAL_IP" ]; then
-    LOCAL_IP="localhost"
-fi
-
-echo ""
-echo "  🌐 URL Local:   http://localhost:7860"
-echo "  🌐 URL Red:     http://${LOCAL_IP}:7860"
-echo ""
-echo "  Ctrl+C para detener"
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo ""
-
-# Ejecutar con manejo de errores
-python3 app.py 2>&1 || {
-    echo ""
-    echo "❌ La aplicación se detuvo con error"
-    echo "   Revisa los mensajes anteriores"
-    echo "   O ejecuta: ./test.sh"
-}
-STARTEOF
-
-chmod +x start.sh
+python app.py
